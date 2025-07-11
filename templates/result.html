@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Neper Data</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='reset.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="result-page">
+    <div class="content-container">
+        <img src="{{ url_for('static', filename='../static/img/chart.png') }}" alt="Lifespan Icon" class="result-icon">
+        <h1 class="result-title">Lifespan: {{ days_with_clicks }} Jours entre le {{ start_date }} et le {{ end_date }}</h1>
+        <a href="{{ url_for('input_article') }}" class="result-link">Retour</a>
+    </div>
+</body>
+</html>
