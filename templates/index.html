@@ -1,103 +1,94 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <title>Neper Data</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='reset.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
-    <header class="header">
-        <nav class="header__nav">
-            <a href="#" class="header__logo-link"><img src="../static/img/Neper-blanc.png" alt="Neper-data logo"
-                    class="header__logo-img"></a>
-        </nav>
-    </header>
+<header class="header">
+    <nav class="header__nav">
+        <a href="#" class="header__logo-link">
+            <img src="../static/img/Neper-blanc.png" alt="Neper-data logo" class="header__logo-img">
+        </a>
+    </nav>
+</header>
 
-    <main class="main">
-        <h2 class="main__title">Découvrez <strong> Neper-Data :</strong> L'outil intelligent pour analyser vos articles
-        </h2>
-        <h3 class="main__subtitle">
-            Utilisez <strong> Neper-Data </strong> pour identifier automatiquement les catégories et entités clés dans
-            vos articles.
-        </h3>
+<main class="main">
+    <h2 class="main__title">Découvrez <strong>Neper-Data :</strong> L'outil intelligent pour analyser vos articles</h2>
+    <h3 class="main__subtitle">
+        Utilisez <strong>Neper-Data</strong> pour identifier automatiquement les catégories et entités clés dans vos articles.
+    </h3>
 
+    <div class="main__content-box">
+        <select class="main__select" id="inputType" onchange="changeInputType()">
+            <option value="textarea">Analyser plusieurs articles</option>
+            <option value="input">Analyser un article</option>
+        </select>
 
-        <div class="main__content-box">
-            <select class="main__select" id="inputType" onchange="changeInputType()">
-                <option value="textarea">Analyser plusieurs articles</option>
-                <option value="input">Analyser un article</option>
-            </select>
+        <!-- Formulaire pour plusieurs articles -->
+        <form class="main__input-container" id="multipleArticlesForm" action="/submit_urls" method="post">
+            <textarea class="main__input-field" name="urls" id="multipleUrls" rows="10" cols="50"
+                      placeholder="Entrez les URLs ici, une par ligne." required></textarea>
 
-            <!-- Formulaire pour plusieurs articles -->
-            <form class="main__input-container" id="multipleArticlesForm" action="/submit_urls" method="post">
-                <textarea class="main__input-field" name="urls" id="multipleUrls" rows="10" cols="50"
-                    placeholder="Entrez les URLs ici, une par ligne." required></textarea>
-                <button type="submit" class="btn btn-analyze">Analyser</button>
-            </form>
+                      <label for="threshold">Seuil de confiance (optionnel) :</label>
+                      <input type="number" id="threshold" name="threshold" step="0.01" min="0" max="1">
+                      
 
-            <!-- Formulaire pour un seul article -->
-            <form class="main__input-container" id="singleArticleForm" action="/submit_url" method="post">
-                <input type="text" class="main__input-field" name="url" id="singleUrl" placeholder="Insérez votre lien">
-                <button type="submit" class="btn btn-analyze">Analyser</button>
-            </form>
+            <label class="main__label">
+                <input type="checkbox" name="strict_mode"> Analyse stricte
+            </label>
 
+            <button type="submit" class="btn btn-analyze">Analyser</button>
+        </form>
 
+        <!-- Formulaire pour un seul article -->
+        <form class="main__input-container" id="singleArticleForm" action="/submit_url" method="post">
+            <input type="text" class="main__input-field" name="url" id="singleUrl" placeholder="Insérez votre lien" required>
 
+            <label class="main__label">
+                Seuil de confiance (optionnel) :
+                <input type="text" name="threshold" placeholder="ex: 0.45">
+            </label>
 
+            <label class="main__label">
+                <input type="checkbox" name="strict_mode"> Analyse stricte
+            </label>
 
+            <button type="submit" class="btn btn-analyze">Analyser</button>
+        </form>
+    </div>
 
+    <p class="main__paragraph">
+        Insérez un ou plusieurs liens, selon l'option que vous avez choisie. L'outil identifiera les catégories et entités présentes dans le contenu.
+    </p>
 
-
-
+    <!-- Résultat modal -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="resultContainer">{{ results | safe }}</div>
         </div>
+    </div>
+</main>
 
-        <p class="main__paragraph">
-            Insérez un ou plusieurs liens, selon l'option que vous avez choisie, l'outil identifiera les catégories et
-            les entités présentes dans le contenu des pages liées.
-        </p>
+<footer class="footer">
+    <div class="footer__content">
+        <h3 class="footer__title"><a href="https://www.neper.fr" target="_blank" class="footer__link">Agence Neper</a></h3>
+        <p class="footer__description">Découvrez nos sites et outils</p>
+        <ul class="footer__list">
+            <li class="footer__list-item"><a href="https://www.barometre-seo.com" target="_blank" class="footer__list-link">Baromètre SEO</a></li>
+            <li class="footer__list-item"><a href="https://koogel.fr" target="_blank" class="footer__list-link">Koogel</a></li>
+            <li class="footer__list-item"><a href="https://www.definitions-seo.com" target="_blank" class="footer__list-link">Définitions SEO</a></li>
+            <li class="footer__list-item"><a href="https://www.outiref.fr" target="_blank" class="footer__list-link">Outiref</a></li>
+            <li class="footer__list-item"><a href="https://biomalin.com" target="_blank" class="footer__list-link">Biomalin</a></li>
+            <li class="footer__list-item"><a href="https://www.googlefight.fr" target="_blank" class="footer__list-link">Googlefight</a></li>
+            <li class="footer__list-item"><a href="https://www.immoseek.fr" target="_blank" class="footer__list-link">Immoseek</a></li>
+        </ul>
+    </div>
+</footer>
 
-        <!-- pop exemple -->
-        <div id="resultModal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeModal()">&times;</span>
-                <div id="resultContainer">
-                    {{ results | safe }}
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="footer">
-        <div class="footer__content">
-            <h3 class="footer__title"><a href="https://www.neper.fr" target="_blank" class="footer__link">Agence
-                    Neper</a></h3>
-            <p class="footer__description">Découvrez nos sites et outils</p>
-            <ul class="footer__list">
-                <li class="footer__list-item"><a href="https://www.barometre-seo.com" target="_blank"
-                        class="footer__list-link">Barometre SEO</a></li>
-                <li class="footer__list-item"><a href="https://koogel.fr" target="_blank"
-                        class="footer__list-link">Koogel</a></li>
-                <li class="footer__list-item"><a href="https://www.definitions-seo.com" target="_blank"
-                        class="footer__list-link">Définition SEO</a></li>
-                <li class="footer__list-item"><a href="https://www.outiref.fr" target="_blank"
-                        class="footer__list-link">Outiref</a></li>
-                <li class="footer__list-item"><a href="https://biomalin.com" target="_blank"
-                        class="footer__list-link">Biomalin</a></li>
-                <li class="footer__list-item"><a href="https://www.googlefight.fr" target="_blank"
-                        class="footer__list-link">Googlefight</a></li>
-                <li class="footer__list-item"><a href="https://www.immoseek.fr" target="_blank"
-                        class="footer__list-link">Immoseek</a></li>
-            </ul>
-        </div>
-    </footer>
-    {% if results %}
-    <div id="resultsPresent" style="display:none;"></div>
-    {% endif %}
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
-
 </html>

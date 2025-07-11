@@ -62,28 +62,34 @@ document.getElementById('singleArticleForm').addEventListener('submit', function
 // Popup modal en cas d'erreur pour les urls multiples
 document.getElementById('multipleArticlesForm').addEventListener('submit', function(event) {
     event.preventDefault();
+
     var urlsElement = document.getElementById('multipleUrls');
-    if (!urlsElement || !urlsElement.value) {
+    if (!urlsElement || !urlsElement.value.trim()) {
         openModal('<p>Erreur : Aucune URL fournie.</p>');
         return;
     }
-    var urls = urlsElement.value.split('\n');
+
+    var threshold = document.getElementById('threshold')?.value || "";
+    var strictMode = document.querySelector('input[name="strict_mode"]').checked;
+
     var formData = new FormData();
-    formData.append('urls', urls.join('\n'));
+    formData.append('urls', urlsElement.value);
+    formData.append('threshold', threshold);
+    if (strictMode) formData.append('strict_mode', 'on');
 
     fetch('/submit_urls', {
         method: 'POST',
         body: formData
     })
     .then(response => {
-        if(response.ok) {
+        if (response.ok) {
             var contentDisposition = response.headers.get('Content-Disposition');
-            var filename = contentDisposition.split('filename=')[1];
+            var filename = contentDisposition?.split('filename=')[1] || 'export.csv';
             response.blob().then(blob => {
                 var url = window.URL.createObjectURL(blob);
                 var a = document.createElement('a');
                 a.href = url;
-                a.download = filename || 'download';
+                a.download = filename;
                 a.click();
             });
         } else {
@@ -91,15 +97,14 @@ document.getElementById('multipleArticlesForm').addEventListener('submit', funct
         }
     })
     .then(data => {
-        if(data && data.error) {
-            openModal(`<p>${data.error}</p>`);
-        }
+        if (data?.error) openModal(`<p>${data.error}</p>`);
     })
     .catch(error => {
-        console.error('Error fetching data:', error);
-        openModal('<p>Erreur interne lors du traitement de l\'article. Une partie attendue de l\'article est manquante ou inaccessible.</p>');
+        console.error('Erreur réseau :', error);
+        openModal('<p>Erreur interne lors du traitement de l’article.</p>');
     });
 });
+
 
 
 // Changer le type d'input

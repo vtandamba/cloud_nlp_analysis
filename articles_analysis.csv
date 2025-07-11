@@ -1,2 +1,2 @@
-﻿Titre;Entités;Catégories
-Oubliez “La femme de ménage”, ce nouveau roman de Freida McFadden débarque en France et va vous laisser bouche-bée;France (Type: LOCATION) | Freida McFadden (Type: PERSON) | La femme de ménage (Type: WORK_OF_ART) | roman (Type: WORK_OF_ART);/Books & Literature/Other (Confidence: 0.84) | /Shopping/Consumer Resources/Product Reviews & Price Comparisons (Confidence: 0.33)
+﻿URL;Titre;Entités (avec saillance);Catégories (avec confidence)
+https://www.futura-sciences.com/sante/actualites/vieillissement-chercheurs-ont-decouvert-deux-marqueurs-cle-indiquent-facon-vous-allez-vieillir-123584/;Des chercheurs ont découvert deux marqueurs clé qui indiquent la façon dont vous allez vieillir;chercheurs (Type: PERSON, Saillance: 0.57) | façon (Type: OTHER, Saillance: 0.24) | marqueurs clé (Type: PERSON, Saillance: 0.20) | deux (Type: NUMBER, Saillance: 0.00);/Health (Confidence: 0.82)
