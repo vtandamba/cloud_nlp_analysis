@@ -1,135 +1,118 @@
-//Retour à la ligne auto dans le textarea
-
-document.addEventListener('DOMContentLoaded', (event) => {
+document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('textarea[name="urls"]').addEventListener('paste', function(e) {
         e.preventDefault();
-        let clipboardData = e.clipboardData || window.clipboardData;
-        let pastedData = clipboardData.getData('Text');
-        // let processedText = pastedData.replace(/(https?:\/\/)(?!www\.)([^\s]+)/g, "$1www.$2"); 
+        let pastedData = (e.clipboardData || window.clipboardData).getData('Text');
         let processedText = pastedData.replace(/(https?:\/\/[^\s]+)/g, "$1\n");
-
-        if (document.queryCommandSupported('insertText')) {
-            document.execCommand('insertText', false, processedText);
-        } else {
-            this.value += processedText;
-        }
+        document.execCommand('insertText', false, processedText);
     });
+
+    changeInputType();
 });
 
-
-
-// Popup modal
-function analyze(event) {
-    event.preventDefault(); 
-
-    var text = document.getElementById("text").value;
-    var modal = document.getElementById("resultModal");
-    modal.style.display = "block";
-}
-
-
-function openModal(html) {
-    document.getElementById('resultContainer').innerHTML = html; 
-    document.getElementById('resultModal').style.display = 'block';
-}
-
-function closeModal() {
-    var modal = document.getElementById("resultModal");
-    modal.style.display = "none";
+function changeInputType() {
+    const inputType = document.getElementById("inputType").value;
+    document.getElementById("multipleArticlesForm").style.display = inputType === "textarea" ? "flex" : "none";
+    document.getElementById("singleArticleForm").style.display = inputType === "input" ? "flex" : "none";
 }
 
 function closeModal() {
     document.getElementById('resultModal').style.display = 'none';
 }
 
-
-// Popup modal en cas d'erreur sur un seul article
+// ----------- SINGLE ARTICLE (modale) -----------
 document.getElementById('singleArticleForm').addEventListener('submit', function(event) {
-    event.preventDefault(); 
-    var url = document.getElementById('singleUrl').value;
+    event.preventDefault();
+    const url = document.getElementById('singleUrl').value;
     fetch(`/submit_url?url=${encodeURIComponent(url)}`)
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
-            if(data.error) {
-                console.error('Error:', data.error);
+            if (data.error) {
+                openModal('<p>' + data.error + '</p>');
             } else {
-                openModal(data.html); 
+                document.getElementById('resultContainer').innerHTML = data.html;
+                document.getElementById('resultModal').style.display = 'block';
             }
         })
-        .catch(error => console.error('Error fetching data:', error));
+        .catch(() => openModal('<p>Erreur réseau.</p>'));
 });
 
-// Popup modal en cas d'erreur pour les urls multiples
+// ----------- MULTIPLE ARTICLES (analyse uniquement, boutons après) -----------
 document.getElementById('multipleArticlesForm').addEventListener('submit', function(event) {
     event.preventDefault();
 
-    var urlsElement = document.getElementById('multipleUrls');
-    if (!urlsElement || !urlsElement.value.trim()) {
-        openModal('<p>Erreur : Aucune URL fournie.</p>');
-        return;
-    }
+    const urls = document.getElementById('multipleUrls').value.trim();
+    if (!urls) return openModal('<p>Aucune URL fournie.</p>');
 
-    var threshold = document.getElementById('threshold')?.value || "";
-    var strictMode = document.querySelector('input[name="strict_mode"]').checked;
+    const threshold = document.getElementById('threshold')?.value || "";
+    const strictMode = document.querySelector('input[name="strict_mode"]').checked;
 
-    var formData = new FormData();
-    formData.append('urls', urlsElement.value);
+    const formData = new FormData();
+    formData.append('urls', urls);
     formData.append('threshold', threshold);
     if (strictMode) formData.append('strict_mode', 'on');
 
-    fetch('/submit_urls', {
+    // On fait juste un call test pour vérifier que l’analyse passe (CSV va être généré en arrière-plan)
+    fetch('/submit_urls', { method: 'POST', body: formData })
+        .then(res => {
+            if (!res.ok) return res.json().then(data => { throw new Error(data.error); });
+
+            // On n'ouvre pas de fichier, juste confirmation et affichage des boutons
+            document.getElementById('exportButtons').style.display = 'flex';
+        })
+        .catch(err => openModal('<p>' + err.message + '</p>'));
+});
+
+// ----------- EXPORT CSV -----------
+function exportCSV() {
+    const form = document.getElementById('multipleArticlesForm');
+    const formData = new FormData(form);
+
+    fetch('/submit_urls_csv', {
         method: 'POST',
         body: formData
     })
-    .then(response => {
-        if (response.ok) {
-            var contentDisposition = response.headers.get('Content-Disposition');
-            var filename = contentDisposition?.split('filename=')[1] || 'export.csv';
-            response.blob().then(blob => {
-                var url = window.URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-            });
-        } else {
-            return response.json();
-        }
+    .then(res => {
+        if (res.ok) return res.blob();
+        return res.json().then(data => { throw new Error(data.error || "Erreur inconnue"); });
     })
-    .then(data => {
-        if (data?.error) openModal(`<p>${data.error}</p>`);
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'articles_analysis.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
     })
-    .catch(error => {
-        console.error('Erreur réseau :', error);
-        openModal('<p>Erreur interne lors du traitement de l’article.</p>');
+    .catch(err => {
+        openModal('<p>' + err.message + '</p>');
     });
-});
-
-
-
-// Changer le type d'input
-function changeInputType() {
-    var inputType = document.getElementById("inputType").value;
-    var multipleArticlesForm = document.getElementById("multipleArticlesForm");
-    var singleArticleForm = document.getElementById("singleArticleForm");
-
-    if (inputType === "textarea") {
-        multipleArticlesForm.style.display = "flex";
-        singleArticleForm.style.display = "none";
-    } else if (inputType === "input") {
-        multipleArticlesForm.style.display = "none";
-        singleArticleForm.style.display = "flex";
-    }
 }
 
-changeInputType();
+// ----------- EXPORT EXCEL -----------
+function exportExcel() {
+    const form = document.getElementById('multipleArticlesForm');
+    const formData = new FormData(form);
 
-// Ouvrir la modale automatiquement si résultats présents dans HTML
-window.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('resultsPresent')) {
-        document.getElementById('resultModal').style.display = 'block';
-    }
-});
+    fetch('/submit_urls_excel', { method: 'POST', body: formData })
+        .then(res => {
+            if (!res.ok) return res.json().then(data => { throw new Error(data.error); });
+            return res.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "articles_analysis.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        })
+        .catch(err => openModal('<p>' + err.message + '</p>'));
+}
 
-
-
+// ----------- MODALE UTILITÉ -----------
+function openModal(content) {
+    document.getElementById('resultContainer').innerHTML = content;
+    document.getElementById('resultModal').style.display = 'block';
+}

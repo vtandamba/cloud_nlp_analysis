@@ -4,7 +4,7 @@ from urllib3.exceptions import LocationParseError, SSLError
 from requests.exceptions import Timeout, HTTPError, ConnectionError
 import csv
 from typing import List, Dict, Union
-
+import pandas as pd
 
 def sample_analyze_entities(text_content: str, language_code: str = "fr") -> List[Dict[str, Union[str, float]]]:
     client = language_v1.LanguageServiceClient()
@@ -134,3 +134,34 @@ def write_to_csv(data: List[Dict], filename: str = 'articles_analysis.csv') -> N
             ])
 
             writer.writerow([item['url'], item['title'], entities_str, categories_str])
+
+
+def write_to_excel(data: List[Dict], filename: str = 'articles_analysis.xlsx') -> None:
+    rows = []
+    for item in data:
+        if item.get('error'):
+            rows.append({
+                'URL': item['url'],
+                'Titre': 'ERREUR',
+                'Erreur': item['error']
+            })
+            continue
+
+        entities_str = ' | '.join([
+            f"{entity['name']} (Type: {entity['type']}, Saillance: {entity['salience']:.2f})"
+            for entity in item['entities']
+        ])
+        categories_str = ' | '.join([
+            f"{cat['name']} (Confidence: {cat['confidence']:.2f})"
+            for cat in item['categories']
+        ])
+
+        rows.append({
+            'URL': item['url'],
+            'Titre': item['title'],
+            'Entités': entities_str,
+            'Catégories': categories_str
+        })
+
+    df = pd.DataFrame(rows)
+    df.to_excel(filename, index=False)

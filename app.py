@@ -1,6 +1,6 @@
 import os
 from flask import *
-from article_processor import process_articles, process_article, write_to_csv
+from article_processor import process_articles, process_article, write_to_csv, write_to_excel
 from lifespan_processor import *
 from urllib.parse import urlparse
 from flask_httpauth import HTTPBasicAuth
@@ -8,9 +8,9 @@ from google.oauth2 import credentials as google_credentials
 from google_auth_oauthlib.flow import Flow
 
 auth = HTTPBasicAuth()
-
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./json/my-project-9994-1685444919368-374f28ab3233.json"
 
@@ -34,6 +34,32 @@ def is_valid_url(url):
     except ValueError:
         return False
 
+# ---------- Analyse simple (un seul article)
+@app.route('/submit_url', methods=['GET', 'POST'])
+@auth.login_required
+def submit_url():
+    url = request.values.get('url')
+    threshold_input = request.values.get('threshold', '').replace(',', '.')
+    strict_mode = request.values.get('strict_mode') == 'on'
+
+    try:
+        threshold = float(threshold_input) if threshold_input else None
+    except ValueError:
+        threshold = None
+
+    if not url or not is_valid_url(url):
+        return jsonify({'error': 'URL invalide.'})
+
+    html_result = process_article(url, threshold)
+    results = process_articles([url], threshold, strict_mode)
+    write_to_csv(results, 'articles_analysis.csv')
+
+    if strict_mode and threshold is not None and "Aucune catégorie" in html_result:
+        return jsonify({'error': "Aucune catégorie ne dépasse le seuil spécifié."})
+
+    return jsonify({'html': html_result})
+
+# ---------- Analyse multiple (sans retour de fichier direct)
 @app.route('/submit_urls', methods=['POST'])
 @auth.login_required
 def submit_urls():
@@ -55,38 +81,31 @@ def submit_urls():
     if not any(r for r in results if not r.get('error')):
         return jsonify({'error': "Aucun article valide. Vérifiez les URLs ou diminuez le seuil."}), 400
 
-    csv_file_path = 'articles_analysis.csv'
-    write_to_csv(results, csv_file_path)
-    return send_file(csv_file_path, as_attachment=True, download_name='articles_analysis.csv')
-
-@app.route('/submit_url', methods=['GET', 'POST'])
-@auth.login_required
-def submit_url():
-    url = request.values.get('url')
-    threshold_input = request.values.get('threshold', '').replace(',', '.')
-    strict_mode = request.values.get('strict_mode') == 'on'
-
-    try:
-        threshold = float(threshold_input) if threshold_input else None
-    except ValueError:
-        threshold = None
-
-    if not url or not is_valid_url(url):
-        return jsonify({'error': 'URL invalide.'})
-
-    html_result = process_article(url, threshold)
-
-    # Enregistrement dans CSV aussi pour 1 seul article
-    results = process_articles([url], threshold, strict_mode)
     write_to_csv(results, 'articles_analysis.csv')
+    write_to_excel(results, 'articles_analysis.xlsx')
 
-    if strict_mode and threshold is not None and "Aucune catégorie" in html_result:
-        return jsonify({'error': "Aucune catégorie ne dépasse le seuil spécifié."})
+    # ✅ Ne retourne rien à télécharger ici. Analyse uniquement.
+    return jsonify({'success': True})
 
-    return jsonify({'html': html_result})
+# ---------- Export CSV (manuel)
+@app.route('/submit_urls_csv', methods=['POST'])
+@auth.login_required
+def submit_urls_csv():
+    try:
+        return send_file('articles_analysis.csv', as_attachment=True, download_name='articles_analysis.csv')
+    except Exception:
+        return jsonify({'error': 'Fichier CSV introuvable.'}), 500
 
-# ----------- Google Search Console Routes (inchangées) -----------
+# ---------- Export Excel (manuel)
+@app.route('/submit_urls_excel', methods=['POST'])
+@auth.login_required
+def submit_urls_excel():
+    try:
+        return send_file('articles_analysis.xlsx', as_attachment=True, download_name='articles_analysis.xlsx')
+    except Exception:
+        return jsonify({'error': 'Fichier Excel introuvable.'}), 500
 
+# ---------- Google Search Console ----------
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
 API_SERVICE_NAME = 'searchconsole'
 API_VERSION = 'v1'
