@@ -36,10 +36,10 @@
     <textarea class="main__input-field" name="urls" id="multipleUrls" rows="10" cols="50"
         placeholder="Entrez les URLs ici, une par ligne." required></textarea>
 
-    <label for="threshold">Seuil de confiance (optionnel) :</label>
+    <label for="threshold">Seuil de confiance pour les catégories (optionnel) :</label>
     <input type="number" id="threshold" name="threshold" step="0.01" min="0" max="1">
 
-    <label for="salience">Seuil de saillance (optionnel) :</label>
+    <label for="salience">Seuil de saillance pour les entités (optionnel) :</label>
     <input type="number" id="salience" name="salience" step="0.01" min="0" max="1">
 
  
@@ -54,10 +54,10 @@
 <form class="main__input-container" id="singleArticleForm" action="/submit_url" method="post">
     <input type="text" class="main__input-field" name="url" id="singleUrl" placeholder="Insérez votre lien" required>
 
-    <label for="threshold">Seuil de confiance (optionnel) :</label>
+    <label for="threshold">Seuil de confiance pour les catégories  (optionnel) :</label>
     <input type="number" id="threshold" name="threshold" step="0.01" min="0" max="1">
 
-    <label for="salience">Seuil de saillance (optionnel) :</label>
+    <label for="salience">Seuil de saillance pour les entités (optionnel) :</label>
     <input type="number" id="salience" name="salience" step="0.01" min="0" max="1">
 
     <button type="submit" class="btn btn-analyze">Analyser</button>

@@ -20,16 +20,23 @@ function closeModal() {
 }
 
 // ----------- SINGLE ARTICLE (modale) -----------
-document.getElementById('singleArticleForm').addEventListener('submit', function (event) {
+document.getElementById('singleArticleForm').addEventListener('submit', function(event) {
     event.preventDefault();
-    const url = document.getElementById('singleUrl').value;
 
+    const btn = document.querySelector('#singleArticleForm .btn-analyze');
+    btn.disabled = true;
+    btn.textContent = 'Analyse en cours...';
+    btn.classList.add('loading');
+
+    const url = document.getElementById('singleUrl').value;
+    
     const thresholdInputs = document.querySelectorAll('#threshold');
     const salienceInputs = document.querySelectorAll('#salience');
 
     const threshold = thresholdInputs[1]?.value || "";
     const salience = salienceInputs[1]?.value || "";
-
+    
+    //  -------------------
     const params = new URLSearchParams({
         url: url,
         threshold: threshold,
@@ -39,6 +46,10 @@ document.getElementById('singleArticleForm').addEventListener('submit', function
     fetch(`/submit_url?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
+            btn.disabled = false;
+            btn.textContent = 'Analyser';
+            btn.classList.remove('loading');
+
             if (data.error) {
                 openModal('<p>' + data.error + '</p>');
             } else {
@@ -46,8 +57,14 @@ document.getElementById('singleArticleForm').addEventListener('submit', function
                 document.getElementById('resultModal').style.display = 'block';
             }
         })
-        .catch(() => openModal('<p>Erreur réseau.</p>'));
+        .catch(() => {
+            btn.disabled = false;
+            btn.textContent = 'Analyser';
+            btn.classList.remove('loading');
+            openModal('<p>Erreur réseau.</p>');
+        });
 });
+
 
 // ----------- MULTIPLE ARTICLES (analyse uniquement, boutons après) -----------
 document.getElementById('multipleArticlesForm').addEventListener('submit', function (event) {
@@ -64,29 +81,41 @@ document.getElementById('multipleArticlesForm').addEventListener('submit', funct
     formData.append('threshold', threshold);
     formData.append('salience', salience);
 
-    // fetch('/submit_urls', { method: 'POST', body: formData })
-    //     .then(res => {
-    //         if (!res.ok) return res.json().then(data => { throw new Error(data.error); });
-    //         document.getElementById('exportButtons').style.display = 'flex';
-    //     })
-    //     .catch(err => openModal('<p>' + err.message + '</p>'));
-    const analyzeButton = document.querySelector('#multipleArticlesForm .btn-analyze');
-analyzeButton.textContent = 'Analyse en cours...';
-analyzeButton.disabled = true;
+
+const btn = document.querySelector('#multipleArticlesForm .btn-analyze');
+btn.disabled = true;
+btn.textContent = 'Analyse en cours...';
+btn.classList.add('loading');
 
 fetch('/submit_urls', { method: 'POST', body: formData })
-    .then(res => {
-        if (!res.ok) return res.json().then(data => { throw new Error(data.error); });
+   .then(res => {
+    return res.json().then(data => {
+        // Réinitialiser le bouton
+        btn.disabled = false;
+        btn.textContent = 'Analyser';
+        btn.classList.remove('loading');
+
         document.getElementById('exportButtons').style.display = 'flex';
-        analyzeButton.textContent = 'Analyser';
-    })
-    .catch(err => {
-        openModal('<p>' + err.message + '</p>');
-        analyzeButton.textContent = 'Analyser';
-    })
-    .finally(() => {
-        analyzeButton.disabled = false;
+
+        if (data.warning) {
+            openModal(`<p><strong>${data.warning}</strong></p>`);
+        }
     });
+})
+.catch(err => {
+    btn.disabled = false;
+    btn.textContent = 'Analyser';
+    btn.classList.remove('loading');
+
+    const message = err.message.toLowerCase();
+    const customMsg = message.includes("aucun article valide")
+        ? `<p><strong>Analyse terminée, mais aucun article ne correspond aux critères spécifiés.</strong><br>
+            Essayez d’abaisser le <em>seuil de confiance</em> ou de <em>saillance</em>.</p>`
+        : `<p>${err.message}</p>`;
+    openModal(customMsg);
+});
+
+
 
 });
 

@@ -90,10 +90,19 @@ def submit_urls():
     if not any(r for r in results if not r.get('error')):
         return jsonify({'error': "Aucun article valide. Vérifiez les URLs ou diminuez le seuil."}), 400
 
+    # Vérifie s’il n’y a aucun résultat significatif
+    if all(not r['entities'] and not r['categories'] for r in results if not r.get('error')):
+        write_to_csv(results, 'articles_analysis.csv')
+        write_to_excel(results, 'articles_analysis.xlsx')
+        return jsonify({
+            'success': True,
+            'warning': "Analyse effectuée, mais aucun résultat ne dépasse les seuils. Essayez de les baisser."
+        }), 200
+
+    # Résultat OK
     write_to_csv(results, 'articles_analysis.csv')
     write_to_excel(results, 'articles_analysis.xlsx')
-
-    return jsonify({'success': True})
+    return jsonify({'success': True}), 200
 
 @app.route('/submit_urls_csv', methods=['POST'])
 @auth.login_required
