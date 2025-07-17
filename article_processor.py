@@ -37,17 +37,25 @@ def sample_classify_text(text_content: str, language_code: str = "en") -> List[D
         {"name": category.name, "confidence": float(category.confidence)}
         for category in response.categories
     ]
-def process_article(url: str, threshold: float = None) -> str:
+def process_article(url: str, threshold_confidence: float = None, threshold_salience: float = None) -> str:
     try:
         article = Article(url)
         article.download()
         article.parse()
 
+        # title_entities = sample_analyze_entities(article.title, "fr")
+        # content_categories = sample_classify_text(article.text, "en")
         title_entities = sample_analyze_entities(article.title, "fr")
-        content_categories = sample_classify_text(article.text, "en")
+        if threshold_salience is not None:
+            title_entities = [e for e in title_entities if e['salience'] >= threshold_salience]
 
-        if threshold is not None:
-            content_categories = [c for c in content_categories if c['confidence'] >= threshold]
+        content_categories = sample_classify_text(article.text, "en")
+        if threshold_confidence is not None:
+            content_categories = [c for c in content_categories if c['confidence'] >= threshold_confidence]
+
+
+        # if threshold is not None:
+        #     content_categories = [c for c in content_categories if c['confidence'] >= threshold]
 
         results_html = f"<p class='modal-title'>Titre de l'article : {article.title}</p>"
 
@@ -77,7 +85,7 @@ def process_article(url: str, threshold: float = None) -> str:
         return "<p class='error-message'>Erreur interne lors du traitement de l'article.</p>"
 
 
-def process_articles(urls: List[str], threshold: float = None, strict: bool = False) -> List[Dict]:
+def process_articles(urls: List[str], threshold_confidence: float = None, threshold_salience: float = None, strict: bool = False) -> List[Dict]:
     results = []
     for url in urls:
         try:
@@ -85,14 +93,31 @@ def process_articles(urls: List[str], threshold: float = None, strict: bool = Fa
             article.download()
             article.parse()
 
+            # entities = sample_analyze_entities(article.title, "fr")
+            # categories = sample_classify_text(article.text, "en")
+
             entities = sample_analyze_entities(article.title, "fr")
+            if threshold_salience is not None:
+                entities = [e for e in entities if e['salience'] >= threshold_salience]
+
             categories = sample_classify_text(article.text, "en")
+            if threshold_confidence is not None:
+                categories = [c for c in categories if c['confidence'] >= threshold_confidence]
 
-            if threshold is not None:
-                categories = [c for c in categories if c['confidence'] >= threshold]
-
-            if strict and threshold is not None and not categories:
+            if strict and threshold_confidence is not None and not categories:
                 raise ValueError("Aucune catégorie ne dépasse le seuil.")
+
+
+            # if threshold is not None:
+            #     categories = [c for c in categories if c['confidence'] >= threshold]
+
+            # if strict and threshold is not None and not categories:
+            #     raise ValueError("Aucune catégorie ne dépasse le seuil.")
+            # if threshold_confidence is not None:
+            #     categories = [c for c in categories if c['confidence'] >= threshold_confidence]
+
+            # if strict and threshold_confidence is not None and not categories:
+            #     raise ValueError("Aucune catégorie ne dépasse le seuil.")
 
             results.append({
                 "url": url,

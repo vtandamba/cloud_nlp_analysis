@@ -23,7 +23,19 @@ function closeModal() {
 document.getElementById('singleArticleForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const url = document.getElementById('singleUrl').value;
-    fetch(`/submit_url?url=${encodeURIComponent(url)}`)
+    const salience = document.getElementById('salience')?.value || "";
+    const threshold = document.querySelector('input[name="threshold"]')?.value || "";
+    const strict = document.querySelector('input[name="strict_mode"]').checked;
+    
+    const params = new URLSearchParams({
+      url: url,
+      threshold: threshold,
+      salience: salience,
+      strict_mode: strict ? 'on' : ''
+    });
+    
+    fetch(`/submit_url?${params.toString()}`)
+    
         .then(res => res.json())
         .then(data => {
             if (data.error) {
@@ -44,23 +56,23 @@ document.getElementById('multipleArticlesForm').addEventListener('submit', funct
     if (!urls) return openModal('<p>Aucune URL fournie.</p>');
 
     const threshold = document.getElementById('threshold')?.value || "";
+    const salience = document.getElementById('salience')?.value || "";
     const strictMode = document.querySelector('input[name="strict_mode"]').checked;
 
     const formData = new FormData();
     formData.append('urls', urls);
     formData.append('threshold', threshold);
+    formData.append('salience', salience);
     if (strictMode) formData.append('strict_mode', 'on');
 
-    // On fait juste un call test pour vérifier que l’analyse passe (CSV va être généré en arrière-plan)
     fetch('/submit_urls', { method: 'POST', body: formData })
         .then(res => {
             if (!res.ok) return res.json().then(data => { throw new Error(data.error); });
-
-            // On n'ouvre pas de fichier, juste confirmation et affichage des boutons
             document.getElementById('exportButtons').style.display = 'flex';
         })
         .catch(err => openModal('<p>' + err.message + '</p>'));
 });
+
 
 // ----------- EXPORT CSV -----------
 function exportCSV() {
@@ -116,3 +128,4 @@ function openModal(content) {
     document.getElementById('resultContainer').innerHTML = content;
     document.getElementById('resultModal').style.display = 'block';
 }
+

@@ -40,18 +40,28 @@ def is_valid_url(url):
 def submit_url():
     url = request.values.get('url')
     threshold_input = request.values.get('threshold', '').replace(',', '.')
+    salience_input = request.values.get('salience', '').replace(',', '.')
     strict_mode = request.values.get('strict_mode') == 'on'
 
     try:
-        threshold = float(threshold_input) if threshold_input else None
+        threshold_confidence = float(threshold_input) if threshold_input else None
     except ValueError:
-        threshold = None
+        threshold_confidence = None
+
+    try:
+        threshold_salience = float(salience_input) if salience_input else None
+    except ValueError:
+        threshold_salience = None
 
     if not url or not is_valid_url(url):
         return jsonify({'error': 'URL invalide.'})
 
-    html_result = process_article(url, threshold)
-    results = process_articles([url], threshold, strict_mode)
+    # html_result = process_article(url, threshold)
+    # results = process_articles([url], threshold, strict_mode)
+    html_result = process_article(url, threshold_confidence, threshold_salience)
+    results = process_articles([url], threshold_confidence, threshold_salience, strict_mode)
+
+
     write_to_csv(results, 'articles_analysis.csv')
 
     if strict_mode and threshold is not None and "Aucune catégorie" in html_result:
@@ -67,16 +77,26 @@ def submit_urls():
     threshold_input = request.form.get('threshold', '').replace(',', '.')
     strict_mode = request.form.get('strict_mode') == 'on'
 
+    # try:
+    #     threshold = float(threshold_input) if threshold_input else None
+    # except ValueError:
+    #     threshold = None
+
+    salience_input = request.form.get('salience', '').replace(',', '.')
     try:
         threshold = float(threshold_input) if threshold_input else None
+        threshold_salience = float(salience_input) if salience_input else None
     except ValueError:
-        threshold = None
+        threshold_salience = None
 
     urls = [url.strip() for url in urls_input.split('\n') if url.strip()]
     if not urls:
         return jsonify({'error': "Aucune URL fournie."}), 400
 
-    results = process_articles(urls, threshold, strict_mode)
+    # results = process_articles(urls, threshold, strict_mode)
+    results = process_articles(urls, threshold, threshold_salience, strict_mode)
+
+
 
     if not any(r for r in results if not r.get('error')):
         return jsonify({'error': "Aucun article valide. Vérifiez les URLs ou diminuez le seuil."}), 400
@@ -84,7 +104,7 @@ def submit_urls():
     write_to_csv(results, 'articles_analysis.csv')
     write_to_excel(results, 'articles_analysis.xlsx')
 
-    # ✅ Ne retourne rien à télécharger ici. Analyse uniquement.
+   
     return jsonify({'success': True})
 
 # ---------- Export CSV (manuel)
