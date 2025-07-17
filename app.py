@@ -34,14 +34,12 @@ def is_valid_url(url):
     except ValueError:
         return False
 
-# ---------- Analyse simple (un seul article)
 @app.route('/submit_url', methods=['GET', 'POST'])
 @auth.login_required
 def submit_url():
     url = request.values.get('url')
     threshold_input = request.values.get('threshold', '').replace(',', '.')
     salience_input = request.values.get('salience', '').replace(',', '.')
-    strict_mode = request.values.get('strict_mode') == 'on'
 
     try:
         threshold_confidence = float(threshold_input) if threshold_input else None
@@ -56,35 +54,29 @@ def submit_url():
     if not url or not is_valid_url(url):
         return jsonify({'error': 'URL invalide.'})
 
-    # html_result = process_article(url, threshold)
-    # results = process_articles([url], threshold, strict_mode)
+    # Analyse unique article (retour HTML uniquement)
     html_result = process_article(url, threshold_confidence, threshold_salience)
-    results = process_articles([url], threshold_confidence, threshold_salience, strict_mode)
 
-
+    # Export CSV avec un seul article analysé
+    results = process_articles([url], threshold_confidence, threshold_salience)
     write_to_csv(results, 'articles_analysis.csv')
-
-    if strict_mode and threshold is not None and "Aucune catégorie" in html_result:
-        return jsonify({'error': "Aucune catégorie ne dépasse le seuil spécifié."})
 
     return jsonify({'html': html_result})
 
-# ---------- Analyse multiple (sans retour de fichier direct)
+
 @app.route('/submit_urls', methods=['POST'])
 @auth.login_required
 def submit_urls():
     urls_input = request.form['urls']
     threshold_input = request.form.get('threshold', '').replace(',', '.')
-    strict_mode = request.form.get('strict_mode') == 'on'
-
-    # try:
-    #     threshold = float(threshold_input) if threshold_input else None
-    # except ValueError:
-    #     threshold = None
-
     salience_input = request.form.get('salience', '').replace(',', '.')
+
     try:
-        threshold = float(threshold_input) if threshold_input else None
+        threshold_confidence = float(threshold_input) if threshold_input else None
+    except ValueError:
+        threshold_confidence = None
+
+    try:
         threshold_salience = float(salience_input) if salience_input else None
     except ValueError:
         threshold_salience = None
@@ -93,10 +85,7 @@ def submit_urls():
     if not urls:
         return jsonify({'error': "Aucune URL fournie."}), 400
 
-    # results = process_articles(urls, threshold, strict_mode)
-    results = process_articles(urls, threshold, threshold_salience, strict_mode)
-
-
+    results = process_articles(urls, threshold_confidence, threshold_salience)
 
     if not any(r for r in results if not r.get('error')):
         return jsonify({'error': "Aucun article valide. Vérifiez les URLs ou diminuez le seuil."}), 400
@@ -104,10 +93,8 @@ def submit_urls():
     write_to_csv(results, 'articles_analysis.csv')
     write_to_excel(results, 'articles_analysis.xlsx')
 
-   
     return jsonify({'success': True})
 
-# ---------- Export CSV (manuel)
 @app.route('/submit_urls_csv', methods=['POST'])
 @auth.login_required
 def submit_urls_csv():
@@ -116,7 +103,6 @@ def submit_urls_csv():
     except Exception:
         return jsonify({'error': 'Fichier CSV introuvable.'}), 500
 
-# ---------- Export Excel (manuel)
 @app.route('/submit_urls_excel', methods=['POST'])
 @auth.login_required
 def submit_urls_excel():
@@ -124,11 +110,6 @@ def submit_urls_excel():
         return send_file('articles_analysis.xlsx', as_attachment=True, download_name='articles_analysis.xlsx')
     except Exception:
         return jsonify({'error': 'Fichier Excel introuvable.'}), 500
-
-# ---------- Google Search Console ----------
-SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
-API_SERVICE_NAME = 'searchconsole'
-API_VERSION = 'v1'
 
 @app.route('/authorize')
 def authorize():

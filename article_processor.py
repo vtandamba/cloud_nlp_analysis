@@ -24,7 +24,6 @@ def sample_analyze_entities(text_content: str, language_code: str = "fr") -> Lis
         } for entity in response.entities
     ]
 
-
 def sample_classify_text(text_content: str, language_code: str = "en") -> List[Dict[str, Union[str, float]]]:
     client = language_v1.LanguageServiceClient()
     document = language_v1.Document(
@@ -37,14 +36,13 @@ def sample_classify_text(text_content: str, language_code: str = "en") -> List[D
         {"name": category.name, "confidence": float(category.confidence)}
         for category in response.categories
     ]
+
 def process_article(url: str, threshold_confidence: float = None, threshold_salience: float = None) -> str:
     try:
         article = Article(url)
         article.download()
         article.parse()
 
-        # title_entities = sample_analyze_entities(article.title, "fr")
-        # content_categories = sample_classify_text(article.text, "en")
         title_entities = sample_analyze_entities(article.title, "fr")
         if threshold_salience is not None:
             title_entities = [e for e in title_entities if e['salience'] >= threshold_salience]
@@ -52,10 +50,6 @@ def process_article(url: str, threshold_confidence: float = None, threshold_sali
         content_categories = sample_classify_text(article.text, "en")
         if threshold_confidence is not None:
             content_categories = [c for c in content_categories if c['confidence'] >= threshold_confidence]
-
-
-        # if threshold is not None:
-        #     content_categories = [c for c in content_categories if c['confidence'] >= threshold]
 
         results_html = f"<p class='modal-title'>Titre de l'article : {article.title}</p>"
 
@@ -84,17 +78,13 @@ def process_article(url: str, threshold_confidence: float = None, threshold_sali
     except Exception as e:
         return "<p class='error-message'>Erreur interne lors du traitement de l'article.</p>"
 
-
-def process_articles(urls: List[str], threshold_confidence: float = None, threshold_salience: float = None, strict: bool = False) -> List[Dict]:
+def process_articles(urls: List[str], threshold_confidence: float = None, threshold_salience: float = None) -> List[Dict]:
     results = []
     for url in urls:
         try:
             article = Article(url)
             article.download()
             article.parse()
-
-            # entities = sample_analyze_entities(article.title, "fr")
-            # categories = sample_classify_text(article.text, "en")
 
             entities = sample_analyze_entities(article.title, "fr")
             if threshold_salience is not None:
@@ -103,21 +93,6 @@ def process_articles(urls: List[str], threshold_confidence: float = None, thresh
             categories = sample_classify_text(article.text, "en")
             if threshold_confidence is not None:
                 categories = [c for c in categories if c['confidence'] >= threshold_confidence]
-
-            if strict and threshold_confidence is not None and not categories:
-                raise ValueError("Aucune catégorie ne dépasse le seuil.")
-
-
-            # if threshold is not None:
-            #     categories = [c for c in categories if c['confidence'] >= threshold]
-
-            # if strict and threshold is not None and not categories:
-            #     raise ValueError("Aucune catégorie ne dépasse le seuil.")
-            # if threshold_confidence is not None:
-            #     categories = [c for c in categories if c['confidence'] >= threshold_confidence]
-
-            # if strict and threshold_confidence is not None and not categories:
-            #     raise ValueError("Aucune catégorie ne dépasse le seuil.")
 
             results.append({
                 "url": url,
@@ -136,7 +111,6 @@ def process_articles(urls: List[str], threshold_confidence: float = None, thresh
                 "error": str(e)
             })
     return results
-
 
 def write_to_csv(data: List[Dict], filename: str = 'articles_analysis.csv') -> None:
     with open(filename, mode='w', newline='', encoding='utf-8-sig') as file:
@@ -159,7 +133,6 @@ def write_to_csv(data: List[Dict], filename: str = 'articles_analysis.csv') -> N
             ])
 
             writer.writerow([item['url'], item['title'], entities_str, categories_str])
-
 
 def write_to_excel(data: List[Dict], filename: str = 'articles_analysis.xlsx') -> None:
     rows = []
